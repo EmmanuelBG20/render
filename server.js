@@ -4,6 +4,8 @@ const mysql = require('mysql');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const secret = ('ppi4')
+const { Client } = require('pg');
+
 
 // Middleware para autenticación de token
 function authenticateToken(req, res, next) {
