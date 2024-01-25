@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const mysql = require('mysql');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+const secret = ('ppi4')
 
 // Middleware para autenticación de token
 function authenticateToken(req, res, next) {
