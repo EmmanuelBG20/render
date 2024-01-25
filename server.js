@@ -39,49 +39,24 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Configuración de la conexión a la base de datos
 const db = mysql.createConnection({
-    user: 'root',
-    host: 'localhost',
-    password: '',
-    database: 'ppi4',
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
 });
-
-
 
 // Conectar a la base de datos
 db.connect((err) => {
     if (err) {
         console.error('Error al conectar a la base de datos:', err);
-        return res.status(500).json({ error: 'Error al conectar a la base de datos' });
+        // Manejo del error de conexión aquí
+        // Por ejemplo, puedes enviar una respuesta 500 con el objeto res si lo tienes disponible
     } else {
         console.log('Conexión exitosa a la base de datos');
     }
 });
 
-//Register
-app.post('/register', (req, res) => {
-    console.log('Received a registration request');
-    const sentEmail = req.body.email;
-    const sentUserName = req.body.userName;
-    const sentPassword = req.body.password;
-
-
-    const SQL = 'INSERT INTO users(email, username, password) VALUES (?, ?, ?)';
-    const values = [sentEmail, sentUserName, sentPassword];
-
-    db.query(SQL, values, (err, results) => {
-        if (err) {
-            console.error('Error al insertar en la base de datos:', err.message);
-            res.status(500).send('Error en la base de datos');
-        } else {
-            console.log('Usuario insertado correctamente');
-            // Después de insertar el usuario, genera un token JWT
-            const token = jwt.sign({ sub: results.insertId, username: sentUserName, email: sentEmail }, secret, { expiresIn: '1h' });
-            res.json({ token });
-        }
-    });
-});
-
-//Login
+// Después de la configuración de la conexión a la base de datos
 app.post('/login', (req, res) => {
     console.log('Received a Login request');
     const sentLoginuserName = req.body.loginuserName;
@@ -94,33 +69,16 @@ app.post('/login', (req, res) => {
     const values = [sentLoginuserName, sentLoginpassword];
 
     db.query(SQL, values, (err, results) => {
-        if (err) {
-            console.error('Error executing SQL:', err);
-
-            if (err.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR') {
-                // Realiza alguna acción específica para este error fatal, si es necesario
-                return res.status(500).json({ error: 'Error fatal en la base de datos' });
-            } else {
-                // Otros errores no fatales
-                return res.status(500).json({ error: 'Error en el servidor' });
-            }
-        }
-
         try {
-            if (results.length > 0) {
-                // Usuario autenticado con éxito
-                console.log('Authentication successful');
-                const user = results[0];
-
-                // Genera un token JWT con la información del usuario
-                const token = jwt.sign({ sub: user.id, username: user.username, email: user.email }, secret, {
-                    expiresIn: '1h', // Tiempo de expiración del token
-                });
-
-                res.json({ token });
+            if (err) {
+                console.error('Error executing SQL:', err);
+                if (err.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR') {
+                    res.status(500).json({ error: 'Error fatal en la base de datos' });
+                } else {
+                    res.status(500).json({ error: 'Error en el servidor' });
+                }
             } else {
-                console.log('Authentication failed');
-                res.status(401).json({ error: 'Autenticación fallida' });
+                // Resto del código de autenticación aquí
             }
         } catch (error) {
             console.error('Error de manejo de errores:', error);
@@ -128,7 +86,6 @@ app.post('/login', (req, res) => {
         }
     });
 });
-
 
 
 
