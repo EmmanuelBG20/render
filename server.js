@@ -39,9 +39,8 @@ app.use(cors({
 }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
 // Configuración de la conexión a la base de datos PostgreSQL (ElephantSQL)
-const connectionString = 'postgres://ppi4_user:yBn7kCyw5jCmaMlCwHC1IOFBeLhpsOsy@dpg-cmpdc9en7f5s73de6uo0-a/ppi4ssl=true';
+const connectionString = 'postgres://ppi4_user:yBn7kCyw5jCmaMlCwHC1IOFBeLhpsOsy@dpg-cmpdc9en7f5s73de6uo0-a:5432/ppi4ssl=true';
 
 // Parsear la cadena de conexión
 const parsedConnection = new URL(connectionString);
@@ -53,6 +52,7 @@ const db = new Client({
     password: parsedConnection.password,
     port: parsedConnection.port,
 });
+
 // Conectar a la base de datos
 db.connect((err) => {
     if (err) {
