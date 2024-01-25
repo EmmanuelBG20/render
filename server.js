@@ -1,25 +1,11 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const mysql = require('mysql');
+const { Client } = require('pg');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const secret = ('ppi4')
-
-// Middleware para autenticación de token
-function authenticateToken(req, res, next) {
-    const token = req.header('Authorization');
-    if (!token) return res.status(401).json({ message: 'Acceso denegado' });
-
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) return res.status(403).json({ message: 'Token inválido' });
-
-        req.user = user;
-        next();
-    });
-}
-
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
+
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -38,24 +24,24 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Configuración de la conexión a la base de datos
-const db = mysql.createConnection({
-    user: 'root',       
-    host: 'localhost',           
-    password: '',  
-    database: 'ppi4',
+// Configuración de la conexión a la base de datos PostgreSQL (ElephantSQL)
+const db = new Client({
+    user: 'root',
+    host: 'kandula.db.elephantsql.com',
+    database: 'tyozklwg',
+    password: 'o8hTN24oDp9fvbOi9dRCrBtC5049SzNQ',
+    port: 5432,
 });
 
-// Conectar a la base de datos
-db.connect((err) => {
-    if (err) {
-        console.error('Error al conectar a la base de datos:', err);
-        // Manejo del error de conexión aquí
-        // Por ejemplo, puedes enviar una respuesta 500 con el objeto res si lo tienes disponible
-    } else {
-        console.log('Conexión exitosa a la base de datos');
-    }
-});
+// Conectar a la base de datos PostgreSQL
+db.connect()
+    .then(() => {
+        console.log('Conexión exitosa a la base de datos PostgreSQL');
+    })
+    .catch((err) => {
+        console.error('Error al conectar a la base de datos PostgreSQL:', err);
+    });
+
 
 // Después de la configuración de la conexión a la base de datos
 app.post('/login', (req, res) => {
