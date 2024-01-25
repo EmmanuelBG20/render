@@ -68,17 +68,34 @@ app.post('/login', (req, res) => {
     const SQL = 'SELECT * FROM users WHERE username = ? AND password = ?';
     const values = [sentLoginuserName, sentLoginpassword];
 
+    // Manejo de errores para la consulta a la base de datos
     db.query(SQL, values, (err, results) => {
-        try {
-            if (err) {
-                console.error('Error executing SQL:', err);
-                if (err.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR') {
-                    res.status(500).json({ error: 'Error fatal en la base de datos' });
-                } else {
-                    res.status(500).json({ error: 'Error en el servidor' });
-                }
+        if (err) {
+            console.error('Error executing SQL:', err);
+            if (err.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR') {
+                res.status(500).json({ error: 'Error fatal en la base de datos' });
             } else {
-                // Resto del código de autenticación aquí
+                res.status(500).json({ error: 'Error en el servidor' });
+            }
+            return;
+        }
+
+        try {
+            // Resto del código de autenticación aquí
+            if (results.length > 0) {
+                // Usuario autenticado con éxito
+                console.log('Authentication successful');
+                const user = results[0];
+
+                // Genera un token JWT con la información del usuario
+                const token = jwt.sign({ sub: user.id, username: user.username, email: user.email }, secret, {
+                    expiresIn: '1h', // Tiempo de expiración del token
+                });
+
+                res.json({ token });
+            } else {
+                console.log('Authentication failed');
+                res.status(401).json({ error: 'Autenticación fallida' });
             }
         } catch (error) {
             console.error('Error de manejo de errores:', error);
@@ -86,7 +103,6 @@ app.post('/login', (req, res) => {
         }
     });
 });
-
 
 
 
