@@ -98,12 +98,11 @@ app.post('/login', (req, res) => {
 
             if (err.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR') {
                 // Realiza alguna acción específica para este error fatal, si es necesario
-                res.status(500).json({ error: 'Error fatal en la base de datos' });
+                return res.status(500).json({ error: 'Error fatal en la base de datos' });
             } else {
                 // Otros errores no fatales
-                res.status(500).json({ error: 'Error en el servidor' });
+                return res.status(500).json({ error: 'Error en el servidor' });
             }
-            return; // Agregamos un return para salir de la función después de enviar la respuesta
         }
 
         try {
