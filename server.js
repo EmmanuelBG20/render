@@ -41,7 +41,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Configuración de la conexión a la base de datos PostgreSQL (ElephantSQL)
-const connectionString = 'postgres://tyozklwg:o8hTN24oDp9fvbOi9dRCrBtC5049SzNQ@kandula.db.elephantsql.com/tyozklwg';
+const connectionString = 'postgres://ppi4_user:yBn7kCyw5jCmaMlCwHC1IOFBeLhpsOsy@dpg-cmpdc9en7f5s73de6uo0-a/ppi4ssl=true';
 
 // Parsear la cadena de conexión
 const parsedConnection = new URL(connectionString);
