@@ -3,38 +3,39 @@ const bodyParser = require('body-parser');
 const mysql = require('mysql');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+
+// Middleware para autenticación de token
 function authenticateToken(req, res, next) {
     const token = req.header('Authorization');
     if (!token) return res.status(401).json({ message: 'Acceso denegado' });
 
-    jwt.verify(token, 'tu_secreto_secreto', (err, user) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
         if (err) return res.status(403).json({ message: 'Token inválido' });
 
         req.user = user;
         next();
     });
 }
-const secret = 'emmappi4'; // Reemplaza esto con tu propio secreto
+
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: 'taskmaster22bc@gmail.com',  // Reemplaza con tu correo electrónico
-        pass: '00130013Ebg.'         // Reemplaza con tu contraseña
+        user: process.env.EMAIL_USER, // Reemplaza con tu correo electrónico
+        pass: process.env.EMAIL_PASSWORD // Reemplaza con tu contraseña
     }
 });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
 app.use(cors({
     origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
 }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
-
 
 // Configuración de la conexión a la base de datos
 const db = mysql.createConnection({
@@ -44,7 +45,6 @@ const db = mysql.createConnection({
     database: process.env.DB_NAME,
 });
 
-
 // Conectar a la base de datos
 db.connect((err) => {
     if (err) {
@@ -53,17 +53,8 @@ db.connect((err) => {
         console.log('Conexión exitosa a la base de datos');
     }
 });
-// Inicia el servidor
-const server = app.listen(PORT, () => {
-    console.log(`Servidor corriendo en http://localhost:${PORT}`);
-});
-
-module.exports = server;
 
 
-
-
-module.exports = authenticateToken;
 
 //Register
 app.post('/register', (req, res) => {
@@ -405,4 +396,15 @@ app.post('/forgotpasswordconfirmation', async (req, res) => {
     }
 });*/
 
+const server = app.listen(PORT, () => {
+    console.log(`Servidor corriendo en http://localhost:${PORT}`);
+});
 
+
+
+module.exports = server;
+
+
+
+
+module.exports = authenticateToken;
