@@ -43,18 +43,23 @@ const db = mysql.createConnection({
     host: process.env.DB_HOST,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
+    port: process.env.DB_PORT || 3306,  // Agrega esta línea para el puerto
 });
+console.log('DB_USER:', process.env.DB_USER);
+console.log('DB_HOST:', process.env.DB_HOST);
+console.log('DB_PASSWORD:', process.env.DB_PASSWORD);
+console.log('DB_NAME:', process.env.DB_NAME);
+
 
 // Conectar a la base de datos
 db.connect((err) => {
     if (err) {
         console.error('Error al conectar a la base de datos:', err);
+        return res.status(500).json({ error: 'Error al conectar a la base de datos' });
     } else {
         console.log('Conexión exitosa a la base de datos');
     }
 });
-
-
 
 //Register
 app.post('/register', (req, res) => {
