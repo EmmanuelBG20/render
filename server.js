@@ -22,8 +22,8 @@ const { v4: uuidv4 } = require('uuid');
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: process.env.EMAIL_USER, // Reemplaza con tu correo electrónico
-        pass: process.env.EMAIL_PASSWORD // Reemplaza con tu contraseña
+        user: 'taskmaster22cb@gmail.com',
+        pass: '00130013'
     }
 });
 
@@ -39,16 +39,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Configuración de la conexión a la base de datos
 const db = mysql.createConnection({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: process.env.DB_PORT || 3306,  // Agrega esta línea para el puerto
+    user: 'root',
+    host: 'localhost',
+    password: '',
+    database: 'ppi4',
 });
-console.log('DB_USER:', process.env.DB_USER);
-console.log('DB_HOST:', process.env.DB_HOST);
-console.log('DB_PASSWORD:', process.env.DB_PASSWORD);
-console.log('DB_NAME:', process.env.DB_NAME);
+
 
 
 // Conectar a la base de datos
