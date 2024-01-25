@@ -93,329 +93,326 @@ app.post('/login', (req, res) => {
     const values = [sentLoginuserName, sentLoginpassword];
 
     db.query(SQL, values, (err, results) => {
-        try {
-            if (err) {
-                console.error('Error executing SQL:', err);
+        if (err) {
+            console.error('Error executing SQL:', err);
 
-                if (err.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR') {
-                    // Realiza alguna acción específica para este error fatal, si es necesario
-                    res.status(500).json({ error: 'Error fatal en la base de datos' });
-                } else {
-                    // Otros errores no fatales
-                    res.status(500).json({ error: 'Error en el servidor' });
-                }
+            if (err.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR') {
+                // Realiza alguna acción específica para este error fatal, si es necesario
+                res.status(500).json({ error: 'Error fatal en la base de datos' });
             } else {
-                if (results.length > 0) {
-                    // Usuario autenticado con éxito
-                    console.log('Authentication successful');
-                    const user = results[0];
+                // Otros errores no fatales
+                res.status(500).json({ error: 'Error en el servidor' });
+            }
+            return; // Agregamos un return para salir de la función después de enviar la respuesta
+        }
 
-                    // Genera un token JWT con la información del usuario
-                    const token = jwt.sign({ sub: user.id, username: user.username, email: user.email }, secret, {
-                        expiresIn: '1h', // Tiempo de expiración del token
-                    });
+        try {
+            if (results.length > 0) {
+                // Usuario autenticado con éxito
+                console.log('Authentication successful');
+                const user = results[0];
 
-                    res.json({ token });
-                } else {
-                    console.log('Authentication failed');
-                    res.status(401).json({ error: 'Autenticación fallida' });
-                }
+                // Genera un token JWT con la información del usuario
+                const token = jwt.sign({ sub: user.id, username: user.username, email: user.email }, secret, {
+                    expiresIn: '1h', // Tiempo de expiración del token
+                });
+
+                res.json({ token });
+            } else {
+                console.log('Authentication failed');
+                res.status(401).json({ error: 'Autenticación fallida' });
             }
         } catch (error) {
             console.error('Error de manejo de errores:', error);
             res.status(500).json({ error: 'Error en el servidor' });
         }
     });
+});
 
 
 
 
 
 
-    // Endpoint de prueba
-    app.get('/', (req, res) => {
-        res.send('¡Hola, mundo!');
-    });
+// Endpoint de prueba
+app.get('/', (req, res) => {
+    res.send('¡Hola, mundo!');
+});
 
-    // Endpoint para crear una nueva tarea
-    app.post('/crear-tarea', (req, res) => {
-        const { name, description, deadline } = req.body;
+// Endpoint para crear una nueva tarea
+app.post('/crear-tarea', (req, res) => {
+    const { name, description, deadline } = req.body;
 
-        // Obtén el token del encabezado de la solicitud
-        const token = req.headers.authorization.split(' ')[1];
+    // Obtén el token del encabezado de la solicitud
+    const token = req.headers.authorization.split(' ')[1];
 
-        try {
-            // Verifica el token para obtener la información del usuario
-            const decoded = jwt.verify(token, secret);
-            const userId = decoded.sub;
+    try {
+        // Verifica el token para obtener la información del usuario
+        const decoded = jwt.verify(token, secret);
+        const userId = decoded.sub;
 
-            // Inserta la nueva tarea en la base de datos
-            const insertQuery = 'INSERT INTO tasks (name, description, deadline, status, userId) VALUES (?, ?, ?, ?, ?)';
-            db.query(insertQuery, [name, description, deadline, 'en progreso', userId], (error, results) => {
-                if (error) {
-                    console.error('Error al crear la tarea:', error);
+        // Inserta la nueva tarea en la base de datos
+        const insertQuery = 'INSERT INTO tasks (name, description, deadline, status, userId) VALUES (?, ?, ?, ?, ?)';
+        db.query(insertQuery, [name, description, deadline, 'en progreso', userId], (error, results) => {
+            if (error) {
+                console.error('Error al crear la tarea:', error);
+                res.status(500).json({ error: 'Error interno del servidor' });
+                return;
+            }
+
+            // Obtén la tarea recién creada
+            const taskId = results.insertId;
+            const selectQuery = 'SELECT * FROM tasks WHERE id = ?';
+            db.query(selectQuery, [taskId], (selectError, selectResults) => {
+                if (selectError) {
+                    console.error('Error al obtener la tarea creada:', selectError);
                     res.status(500).json({ error: 'Error interno del servidor' });
                     return;
                 }
 
-                // Obtén la tarea recién creada
-                const taskId = results.insertId;
-                const selectQuery = 'SELECT * FROM tasks WHERE id = ?';
-                db.query(selectQuery, [taskId], (selectError, selectResults) => {
-                    if (selectError) {
-                        console.error('Error al obtener la tarea creada:', selectError);
-                        res.status(500).json({ error: 'Error interno del servidor' });
-                        return;
-                    }
-
-                    const createdTask = selectResults[0];
-                    res.json(createdTask);
-                });
+                const createdTask = selectResults[0];
+                res.json(createdTask);
             });
-        } catch (error) {
-            console.error('Error al verificar el token:', error);
-            res.status(401).json({ error: 'Token inválido' });
+        });
+    } catch (error) {
+        console.error('Error al verificar el token:', error);
+        res.status(401).json({ error: 'Token inválido' });
+    }
+});
+
+// Endpoint para obtener tareas en progreso
+app.get('/tareas-en-progreso', (req, res) => {
+    const selectQuery = 'SELECT * FROM tasks WHERE status = ?';
+    const status = 'en progreso';
+
+    db.query(selectQuery, [status], (error, results) => {
+        if (error) {
+            console.error('Error al obtener tareas en progreso:', error);
+            res.status(500).json({ error: 'Error interno del servidor' });
+            return;
         }
+
+        res.json(results);
     });
+});
 
-    // Endpoint para obtener tareas en progreso
-    app.get('/tareas-en-progreso', (req, res) => {
-        const selectQuery = 'SELECT * FROM tasks WHERE status = ?';
-        const status = 'en progreso';
 
-        db.query(selectQuery, [status], (error, results) => {
-            if (error) {
-                console.error('Error al obtener tareas en progreso:', error);
-                res.status(500).json({ error: 'Error interno del servidor' });
-                return;
-            }
+// Endpoint para eliminar una tarea
+app.delete('/eliminar-tarea/:taskId', (req, res) => {
+    const taskId = req.params.taskId;
 
-            res.json(results);
-        });
+    // Realiza la lógica para eliminar la tarea de la base de datos
+    console.log('Recibida solicitud para eliminar la tarea con ID:', taskId);
+
+    db.query('DELETE FROM tasks WHERE id = ?', [taskId], (error, results) => {
+        if (error) {
+            console.error('Error al eliminar la tarea:', error);
+            res.status(500).json({ error: 'Error interno del servidor' });
+            return;
+        }
+
+        console.log('Tarea eliminada correctamente');
+        res.json({ message: 'Tarea eliminada correctamente' });
     });
+});
 
 
-    // Endpoint para eliminar una tarea
-    app.delete('/eliminar-tarea/:taskId', (req, res) => {
-        const taskId = req.params.taskId;
+// Endpoint para editar una tarea
+app.put('/editar-tarea/:taskId', (req, res) => {
+    const taskId = req.params.taskId;
+    const { name, description, deadline } = req.body;
 
-        // Realiza la lógica para eliminar la tarea de la base de datos
-        console.log('Recibida solicitud para eliminar la tarea con ID:', taskId);
-
-        db.query('DELETE FROM tasks WHERE id = ?', [taskId], (error, results) => {
-            if (error) {
-                console.error('Error al eliminar la tarea:', error);
-                res.status(500).json({ error: 'Error interno del servidor' });
-                return;
-            }
-
-            console.log('Tarea eliminada correctamente');
-            res.json({ message: 'Tarea eliminada correctamente' });
-        });
+    // Realiza la lógica para editar la tarea en la base de datos
+    db.query('UPDATE tasks SET name = ?, description = ?, deadline = ? WHERE id = ?', [name, description, deadline, taskId], (error, results) => {
+        if (error) {
+            console.error('Error al editar la tarea:', error);
+            res.status(500).json({ error: 'Error interno del servidor' });
+            return;
+        }
+        res.json({ message: 'Tarea editada correctamente' });
     });
+});
 
+// Endpoint para marcar una tarea como completada
+app.put('/completar-tarea/:taskId', (req, res) => {
+    const taskId = req.params.taskId;
 
-    // Endpoint para editar una tarea
-    app.put('/editar-tarea/:taskId', (req, res) => {
-        const taskId = req.params.taskId;
-        const { name, description, deadline } = req.body;
-
-        // Realiza la lógica para editar la tarea en la base de datos
-        db.query('UPDATE tasks SET name = ?, description = ?, deadline = ? WHERE id = ?', [name, description, deadline, taskId], (error, results) => {
-            if (error) {
-                console.error('Error al editar la tarea:', error);
-                res.status(500).json({ error: 'Error interno del servidor' });
-                return;
-            }
-            res.json({ message: 'Tarea editada correctamente' });
-        });
+    // Realiza la lógica para marcar la tarea como completada en la base de datos
+    db.query('UPDATE tasks SET status = "completada" WHERE id = ?', [taskId], (error, results) => {
+        if (error) {
+            console.error('Error al completar la tarea:', error);
+            res.status(500).json({ error: 'Error interno del servidor' });
+            return;
+        }
+        res.json({ message: 'Tarea completada correctamente' });
     });
+});
 
-    // Endpoint para marcar una tarea como completada
-    app.put('/completar-tarea/:taskId', (req, res) => {
-        const taskId = req.params.taskId;
-
-        // Realiza la lógica para marcar la tarea como completada en la base de datos
-        db.query('UPDATE tasks SET status = "completada" WHERE id = ?', [taskId], (error, results) => {
-            if (error) {
-                console.error('Error al completar la tarea:', error);
-                res.status(500).json({ error: 'Error interno del servidor' });
-                return;
-            }
-            res.json({ message: 'Tarea completada correctamente' });
-        });
+app.get('/tareas', (req, res) => {
+    // Lógica para obtener todas las tareas desde la base de datos
+    db.query('SELECT * FROM tasks', (error, results) => {
+        if (error) {
+            console.error('Error al obtener tareas:', error);
+            res.status(500).json({ error: 'Error interno del servidor' });
+            return;
+        }
+        res.json(results);
     });
+});
 
-    app.get('/tareas', (req, res) => {
-        // Lógica para obtener todas las tareas desde la base de datos
-        db.query('SELECT * FROM tasks', (error, results) => {
-            if (error) {
-                console.error('Error al obtener tareas:', error);
-                res.status(500).json({ error: 'Error interno del servidor' });
-                return;
-            }
-            res.json(results);
-        });
+app.get('/tareas-completadas', (req, res) => {
+    // Lógica para obtener las tareas completadas en la base de datos
+    db.query('SELECT * FROM tasks WHERE status = "completada"', (error, results) => {
+        if (error) {
+            console.error('Error al obtener tareas completadas:', error);
+            res.status(500).json({ error: 'Error interno del servidor' });
+            return;
+        }
+        res.json(results);
     });
+});
 
-    app.get('/tareas-completadas', (req, res) => {
-        // Lógica para obtener las tareas completadas en la base de datos
-        db.query('SELECT * FROM tasks WHERE status = "completada"', (error, results) => {
-            if (error) {
-                console.error('Error al obtener tareas completadas:', error);
-                res.status(500).json({ error: 'Error interno del servidor' });
-                return;
-            }
-            res.json(results);
-        });
-    });
+// Endpoint para restablecer la contraseña
+app.post('/forgotpassword', async (req, res) => {
+    try {
+        const { email } = req.body; // Cambiado de req.email a req.body.email
 
-    // Endpoint para restablecer la contraseña
-    app.post('/forgotpassword', async (req, res) => {
+        console.log('Recibida solicitud de restablecimiento de contraseña para el correo electrónico:', email);
+
+        // Verifica si el correo electrónico existe en la base de datos
+        const userQuery = 'SELECT * FROM users WHERE email = ?';
+
+        let results, fields;
+
         try {
-            const { email } = req.body; // Cambiado de req.email a req.body.email
+            /*    { results, fields } = await db.query(userQuery, [email]);*/
+            console.log(await db.query(userQuery, [email]));
+        } catch (error) {
+            console.error('Error en la consulta:', error);
+            return res.status(500).json({ message: 'Error interno del servidor' });
+        }
 
-            console.log('Recibida solicitud de restablecimiento de contraseña para el correo electrónico:', email);
+        console.log('Resultados de la consulta:', results);
+        console.log('Campos de la consulta:', fields);
 
-            // Verifica si el correo electrónico existe en la base de datos
-            const userQuery = 'SELECT * FROM users WHERE email = ?';
+        if (!results || results.length === 0) {
+            console.log('Correo electrónico no encontrado o la longitud de los resultados es cero:', email);
+            return res.status(404).json({ message: 'Correo electrónico no encontrado' });
+        }
 
-            let results, fields;
+        const user = results[0];
 
-            try {
-                /*    { results, fields } = await db.query(userQuery, [email]);*/
-                console.log(await db.query(userQuery, [email]));
-            } catch (error) {
-                console.error('Error en la consulta:', error);
-                return res.status(500).json({ message: 'Error interno del servidor' });
+        if (!user || !user.id) {
+            console.log('El usuario no tiene ID:', email);
+            return res.status(404).json({ message: 'Correo electrónico no encontrado' });
+        }
+
+        const resetToken = uuidv4();
+
+        // Almacena el token en la base de datos
+        const updateTokenQuery = 'UPDATE users SET resetToken = ? WHERE email = ?'; // Cambiado de id a email
+        let queryResult;
+
+        try {
+            queryResult = await db.query(updateTokenQuery, [resetToken, email]); // Cambiado de user.id a email
+        } catch (error) {
+            console.error('Error al actualizar el token:', error);
+            return res.status(500).json({ message: 'Error interno del servidor' });
+        }
+
+        console.log('Resultado de la actualización del token:', queryResult);
+
+        if (queryResult && queryResult.affectedRows === 0) {
+            console.log('Error al actualizar el token para el usuario con correo electrónico:', email);
+            return res.status(500).json({ message: 'Error interno del servidor' });
+        }
+
+        const resetLink = `http://localhost:3000/resetpassword/${resetToken}`;
+        const mailOptions = {
+            from: 'taskmaster22bc@gmail.com',
+            to: email,
+            subject: 'Restablecimiento de contraseña',
+            text: `Haz clic en el siguiente enlace para restablecer tu contraseña: ${resetLink}`,
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        console.log('Correo electrónico enviado con éxito para el correo electrónico:', email);
+        res.json({ message: 'Correo electrónico enviado con éxito' });
+    } catch (error) {
+        console.error('Error al procesar la solicitud de restablecimiento de contraseña:', error);
+        res.status(500).json({ message: 'Error interno del servidor' });
+    }
+});
+
+
+
+app.post('/forgotpasswordconfirmation', async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+
+        console.log('Recibida solicitud de confirmación de restablecimiento de contraseña para el token:', token);
+
+        // Busca al usuario con el token de restablecimiento en la base de datos
+        const userQuery = 'SELECT * FROM users WHERE resetToken = ?';
+        const userResults = await db.query(userQuery, [token]);
+
+        if (!userResults || userResults.length === 0) {
+            console.log('Token no válido:', token);
+            return res.status(404).json({ message: 'Token no válido' });
+        }
+
+        const user = userResults[0];
+
+        // Actualiza la contraseña del usuario y elimina el token de restablecimiento
+        const updatePasswordQuery = 'UPDATE users SET password = ?, resetToken = NULL WHERE id = ?';
+        await db.query(updatePasswordQuery, [newPassword, user.id]);
+
+        console.log('Contraseña restablecida con éxito para el token:', token);
+        res.json({ message: 'Contraseña restablecida con éxito' });
+    } catch (error) {
+        console.error('Error al procesar la confirmación de restablecimiento de contraseña:', error);
+        res.status(500).json({ message: 'Error interno del servidor' });
+    }
+});
+// Endpoint para obtener el perfil del usuario actual
+/*app.get('/perfil', (req, res) => {
+    // Obtén el token del encabezado de la solicitud
+    const token = req.headers.authorization.split(' ')[1];
+ 
+    try {
+        // Verifica el token para obtener la información del usuario
+        const decoded = jwt.verify(token, secret);
+        const userId = decoded.sub;
+ 
+        // Busca al usuario en la base de datos
+        const selectQuery = 'SELECT id, username, email FROM users WHERE id = ?';
+        db.query(selectQuery, [userId], (error, results) => {
+            if (error) {
+                console.error('Error al obtener el perfil del usuario:', error);
+                res.status(500).json({ error: 'Error interno del servidor' });
+                return;
             }
-
-            console.log('Resultados de la consulta:', results);
-            console.log('Campos de la consulta:', fields);
-
-            if (!results || results.length === 0) {
-                console.log('Correo electrónico no encontrado o la longitud de los resultados es cero:', email);
-                return res.status(404).json({ message: 'Correo electrónico no encontrado' });
+ 
+            if (results.length === 0) {
+                console.error('Usuario no encontrado');
+                res.status(404).json({ error: 'Usuario no encontrado' });
+                return;
             }
-
+ 
             const user = results[0];
+            res.json(user);
+        });
+    } catch (error) {
+        console.error('Error al verificar el token:', error);
+        res.status(401).json({ error: 'Token inválido' });
+    }
+});*/
 
-            if (!user || !user.id) {
-                console.log('El usuario no tiene ID:', email);
-                return res.status(404).json({ message: 'Correo electrónico no encontrado' });
-            }
-
-            const resetToken = uuidv4();
-
-            // Almacena el token en la base de datos
-            const updateTokenQuery = 'UPDATE users SET resetToken = ? WHERE email = ?'; // Cambiado de id a email
-            let queryResult;
-
-            try {
-                queryResult = await db.query(updateTokenQuery, [resetToken, email]); // Cambiado de user.id a email
-            } catch (error) {
-                console.error('Error al actualizar el token:', error);
-                return res.status(500).json({ message: 'Error interno del servidor' });
-            }
-
-            console.log('Resultado de la actualización del token:', queryResult);
-
-            if (queryResult && queryResult.affectedRows === 0) {
-                console.log('Error al actualizar el token para el usuario con correo electrónico:', email);
-                return res.status(500).json({ message: 'Error interno del servidor' });
-            }
-
-            const resetLink = `http://localhost:3000/resetpassword/${resetToken}`;
-            const mailOptions = {
-                from: 'taskmaster22bc@gmail.com',
-                to: email,
-                subject: 'Restablecimiento de contraseña',
-                text: `Haz clic en el siguiente enlace para restablecer tu contraseña: ${resetLink}`,
-            };
-
-            await transporter.sendMail(mailOptions);
-
-            console.log('Correo electrónico enviado con éxito para el correo electrónico:', email);
-            res.json({ message: 'Correo electrónico enviado con éxito' });
-        } catch (error) {
-            console.error('Error al procesar la solicitud de restablecimiento de contraseña:', error);
-            res.status(500).json({ message: 'Error interno del servidor' });
-        }
-    });
+const server = app.listen(PORT, () => {
+    console.log(`Servidor corriendo en http://localhost:${PORT}`);
+});
 
 
 
-    app.post('/forgotpasswordconfirmation', async (req, res) => {
-        try {
-            const { token, newPassword } = req.body;
-
-            console.log('Recibida solicitud de confirmación de restablecimiento de contraseña para el token:', token);
-
-            // Busca al usuario con el token de restablecimiento en la base de datos
-            const userQuery = 'SELECT * FROM users WHERE resetToken = ?';
-            const userResults = await db.query(userQuery, [token]);
-
-            if (!userResults || userResults.length === 0) {
-                console.log('Token no válido:', token);
-                return res.status(404).json({ message: 'Token no válido' });
-            }
-
-            const user = userResults[0];
-
-            // Actualiza la contraseña del usuario y elimina el token de restablecimiento
-            const updatePasswordQuery = 'UPDATE users SET password = ?, resetToken = NULL WHERE id = ?';
-            await db.query(updatePasswordQuery, [newPassword, user.id]);
-
-            console.log('Contraseña restablecida con éxito para el token:', token);
-            res.json({ message: 'Contraseña restablecida con éxito' });
-        } catch (error) {
-            console.error('Error al procesar la confirmación de restablecimiento de contraseña:', error);
-            res.status(500).json({ message: 'Error interno del servidor' });
-        }
-    });
-    // Endpoint para obtener el perfil del usuario actual
-    /*app.get('/perfil', (req, res) => {
-        // Obtén el token del encabezado de la solicitud
-        const token = req.headers.authorization.split(' ')[1];
-    
-        try {
-            // Verifica el token para obtener la información del usuario
-            const decoded = jwt.verify(token, secret);
-            const userId = decoded.sub;
-    
-            // Busca al usuario en la base de datos
-            const selectQuery = 'SELECT id, username, email FROM users WHERE id = ?';
-            db.query(selectQuery, [userId], (error, results) => {
-                if (error) {
-                    console.error('Error al obtener el perfil del usuario:', error);
-                    res.status(500).json({ error: 'Error interno del servidor' });
-                    return;
-                }
-    
-                if (results.length === 0) {
-                    console.error('Usuario no encontrado');
-                    res.status(404).json({ error: 'Usuario no encontrado' });
-                    return;
-                }
-    
-                const user = results[0];
-                res.json(user);
-            });
-        } catch (error) {
-            console.error('Error al verificar el token:', error);
-            res.status(401).json({ error: 'Token inválido' });
-        }
-    });*/
-
-    const server = app.listen(PORT, () => {
-        console.log(`Servidor corriendo en http://localhost:${PORT}`);
-    });
-
-
-
-    module.exports = server;
-
-
-
-
-    module.exports = authenticateToken;
+module.exports = { server, authenticateToken };
