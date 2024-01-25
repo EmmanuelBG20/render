@@ -1,34 +1,21 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const mysql = require('mysql');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const secret = ('ppi4')
 const { Client } = require('pg');
-
 
 // Middleware para autenticación de token
 function authenticateToken(req, res, next) {
     const token = req.header('Authorization');
     if (!token) return res.status(401).json({ message: 'Acceso denegado' });
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    jwt.verify(token, 'ppi4', (err, user) => {
         if (err) return res.status(403).json({ message: 'Token inválido' });
 
         req.user = user;
         next();
     });
 }
-
-const nodemailer = require('nodemailer');
-const { v4: uuidv4 } = require('uuid');
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: 'taskmaster22cb@gmail.com',
-        pass: '00130013'
-    }
-});
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -39,25 +26,19 @@ app.use(cors({
 }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-// Configuración de la conexión a la base de datos PostgreSQL (ElephantSQL)
-const connectionString = 'postgres://ppi4_user:yBn7kCyw5jCmaMlCwHC1IOFBeLhpsOsy@dpg-cmpdc9en7f5s73de6uo0-a:5432/ppi4ssl=true';
 
-// Parsear la cadena de conexión
-const parsedConnection = new URL(connectionString);
-
+// Configuración de la conexión a la base de datos PostgreSQL (Render)
 const db = new Client({
-    user: parsedConnection.username,
-    host: parsedConnection.hostname,
-    database: parsedConnection.pathname.replace('/', ''),
-    password: parsedConnection.password,
-    port: parsedConnection.port,
+    connectionString: 'postgres://ppi4_user:yBn7kCyw5jCmaMlCwHC1IOFBeLhpsOsy@dpg-cmpdc9en7f5s73de6uo0-a.oregon-postgres.render.com/ppi4',
+    ssl: {
+        rejectUnauthorized: false, // Necesario si estás usando SSL (lo común en Render)
+    },
 });
 
 // Conectar a la base de datos
 db.connect((err) => {
     if (err) {
         console.error('Error al conectar a la base de datos:', err);
-
     } else {
         console.log('Conexión exitosa a la base de datos');
     }
